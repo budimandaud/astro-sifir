@@ -64,7 +64,7 @@
 <div class="game-area" id="gameArea">
   <div id="hero">🚀</div>
 </div>
-
+<div id="question" style="font-size:24px;margin-top:10px;"></div>
 <div class="stats">
   Skor: <span id="score">0</span> |
   Nyawa: <span id="lives">3</span>
@@ -98,70 +98,78 @@
     hero.style.left = heroPos + "%";
   });
 
-  function spawnAsteroids() {
-    if (gameOver) return;
+function spawnAsteroids() {
+  if (gameOver) return;
 
-    let a = sifir;
-    let b = Math.floor(Math.random() * 10) + 1;
-    let correctAnswer = a * b;
+  let a = sifir;
+  let b = Math.floor(Math.random() * 10) + 1;
+  let correctAnswer = a * b;
 
-    let answers = [correctAnswer];
+  // 👉 PAPAR SOALAN
+  document.getElementById("question").innerText = `${a} x ${b} = ?`;
 
-    while (answers.length < 4) {
-      let fake = Math.floor(Math.random() * 100);
-      if (!answers.includes(fake)) answers.push(fake);
-    }
+  let answers = [correctAnswer];
 
-    answers.forEach((num, index) => {
-      let asteroid = document.createElement("div");
-      asteroid.className = "asteroid";
-      asteroid.style.left = (10 + index * 20) + "%";
-      asteroid.innerHTML = `
-        ☄️
-        <div class="number">${num}</div>
-      `;
-      asteroid.dataset.correct = num === correctAnswer;
-
-      gameArea.appendChild(asteroid);
-
-      let pos = -60;
-
-      let fall = setInterval(() => {
-        if (gameOver) {
-          clearInterval(fall);
-          asteroid.remove();
-          return;
-        }
-
-        pos += 2;
-        asteroid.style.top = pos + "px";
-
-        if (pos > 330) {
-          clearInterval(fall);
-
-          let heroRect = hero.getBoundingClientRect();
-          let asteroidRect = asteroid.getBoundingClientRect();
-
-          if (
-            heroRect.left < asteroidRect.right &&
-            heroRect.right > asteroidRect.left &&
-            asteroid.dataset.correct === "true"
-          ) {
-            score += 10;
-            document.getElementById("score").innerText = score;
-          } else if (asteroid.dataset.correct === "true") {
-            lives--;
-            document.getElementById("lives").innerText = lives;
-          }
-
-          asteroid.remove();
-
-          if (lives <= 0) endGame();
-        }
-
-      }, 30);
-    });
+  while (answers.length < 4) {
+    let fake = Math.floor(Math.random() * 100);
+    if (!answers.includes(fake)) answers.push(fake);
   }
+
+  gameArea.innerHTML = '<div id="hero">🚀</div>'; 
+  hero = document.getElementById("hero");
+  hero.style.left = heroPos + "%";
+
+  answers.forEach((num, index) => {
+    let asteroid = document.createElement("div");
+    asteroid.className = "asteroid";
+    asteroid.style.left = (10 + index * 20) + "%";
+    asteroid.innerHTML = `
+      ☄️
+      <div class="number">${num}</div>
+    `;
+    asteroid.dataset.correct = num === correctAnswer;
+
+    gameArea.appendChild(asteroid);
+
+    let pos = -60;
+
+    let fall = setInterval(() => {
+      if (gameOver) {
+        clearInterval(fall);
+        asteroid.remove();
+        return;
+      }
+
+      pos += 2;
+      asteroid.style.top = pos + "px";
+
+      if (pos > 330) {
+        clearInterval(fall);
+
+        let heroRect = hero.getBoundingClientRect();
+        let asteroidRect = asteroid.getBoundingClientRect();
+
+        if (
+          heroRect.left < asteroidRect.right &&
+          heroRect.right > asteroidRect.left &&
+          asteroid.dataset.correct === "true"
+        ) {
+          score += 10;
+          document.getElementById("score").innerText = score;
+        } else if (asteroid.dataset.correct === "true") {
+          lives--;
+          document.getElementById("lives").innerText = lives;
+        }
+
+        asteroid.remove();
+
+        if (lives <= 0) endGame();
+      }
+
+    }, 30);
+  });
+}
+
 
   async function endGame() {
     gameOver = true;
@@ -182,3 +190,4 @@
 
 </body>
 </html>
+
