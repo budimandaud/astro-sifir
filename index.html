@@ -14,13 +14,13 @@
       overflow: hidden;
     }
 
-    h1 { margin-top: 15px; }
+    h1 { margin-top: 10px; }
 
     .game-area {
       position: relative;
-      height: 350px;
-      margin: 20px auto;
+      height: 400px;
       width: 80%;
+      margin: 20px auto;
       border: 2px solid #00c6ff;
       border-radius: 10px;
       overflow: hidden;
@@ -30,41 +30,24 @@
       position: absolute;
       bottom: 10px;
       left: 45%;
-      font-size: 45px;
+      font-size: 40px;
+      transition: left 0.1s;
     }
 
-    #asteroid {
+    .asteroid {
       position: absolute;
       top: -60px;
-      left: 45%;
-      font-size: 45px;
-      transition: top 4s linear;
+      font-size: 30px;
+      text-align: center;
+      width: 60px;
     }
 
-    .game-box {
-      margin-top: 10px;
-      font-size: 24px;
-    }
-
-    button {
-      padding: 8px 18px;
-      margin: 8px;
+    .number {
       font-size: 18px;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      background: #00c6ff;
-      color: black;
     }
 
     .stats {
       margin-top: 10px;
-      font-size: 18px;
-    }
-
-    .leaderboard {
-      margin-top: 20px;
-      font-size: 14px;
     }
   </style>
 </head>
@@ -78,125 +61,106 @@
   Kelas: <input type="text" id="class">
 </div>
 
-<div class="game-area">
-  <div id="asteroid">☄️</div>
+<div class="game-area" id="gameArea">
   <div id="hero">🚀</div>
-</div>
-
-<div class="game-box">
-  <div id="question"></div>
-  <div id="answers"></div>
 </div>
 
 <div class="stats">
   Skor: <span id="score">0</span> |
-  Nyawa: <span id="lives">3</span> |
-  Masa: <span id="timer">60</span>s
-</div>
-
-<div class="leaderboard">
-  <h3>🏆 Leaderboard</h3>
-  <div id="board"></div>
+  Nyawa: <span id="lives">3</span>
 </div>
 
 <script>
   const supabaseUrl = "https://vocabjqcevsauktpujap.supabase.co";
-  const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvY2FianFjZXZzYXVrdHB1amFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzMTUzNDQsImV4cCI6MjA4Njg5MTM0NH0.xUCfX36rki4kFZTRGtlulURFCCEMOL6cqOaKe3DtDP8";
-
+  const supabaseKey = "PASTE_ANON_KEY_HERE";
   const { createClient } = supabase;
   const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
+  let hero = document.getElementById("hero");
+  let gameArea = document.getElementById("gameArea");
+
+  let heroPos = 45;
   let score = 0;
-  let correct = 0;
-  let total = 0;
   let lives = 3;
-  let timeLeft = 60;
   let sifir = 6;
   let gameOver = false;
 
-  function newQuestion() {
+  // 🎮 MOVE HERO
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft") {
+      heroPos -= 5;
+      if (heroPos < 0) heroPos = 0;
+    }
+    if (e.key === "ArrowRight") {
+      heroPos += 5;
+      if (heroPos > 90) heroPos = 90;
+    }
+    hero.style.left = heroPos + "%";
+  });
+
+  function spawnAsteroids() {
     if (gameOver) return;
 
     let a = sifir;
     let b = Math.floor(Math.random() * 10) + 1;
-    let answer = a * b;
+    let correctAnswer = a * b;
 
-    document.getElementById("question").innerText = `${a} x ${b} = ?`;
+    let answers = [correctAnswer];
 
-    let answersDiv = document.getElementById("answers");
-    answersDiv.innerHTML = "";
-
-    let options = [answer];
-
-    while (options.length < 4) {
+    while (answers.length < 4) {
       let fake = Math.floor(Math.random() * 100);
-      if (!options.includes(fake)) options.push(fake);
+      if (!answers.includes(fake)) answers.push(fake);
     }
 
-    options.sort(() => Math.random() - 0.5);
+    answers.forEach((num, index) => {
+      let asteroid = document.createElement("div");
+      asteroid.className = "asteroid";
+      asteroid.style.left = (10 + index * 20) + "%";
+      asteroid.innerHTML = `
+        ☄️
+        <div class="number">${num}</div>
+      `;
+      asteroid.dataset.correct = num === correctAnswer;
 
-    options.forEach(opt => {
-      let btn = document.createElement("button");
-      btn.innerText = opt;
-      btn.onclick = () => checkAnswer(opt, answer);
-      answersDiv.appendChild(btn);
+      gameArea.appendChild(asteroid);
+
+      let pos = -60;
+
+      let fall = setInterval(() => {
+        if (gameOver) {
+          clearInterval(fall);
+          asteroid.remove();
+          return;
+        }
+
+        pos += 2;
+        asteroid.style.top = pos + "px";
+
+        if (pos > 330) {
+          clearInterval(fall);
+
+          let heroRect = hero.getBoundingClientRect();
+          let asteroidRect = asteroid.getBoundingClientRect();
+
+          if (
+            heroRect.left < asteroidRect.right &&
+            heroRect.right > asteroidRect.left &&
+            asteroid.dataset.correct === "true"
+          ) {
+            score += 10;
+            document.getElementById("score").innerText = score;
+          } else if (asteroid.dataset.correct === "true") {
+            lives--;
+            document.getElementById("lives").innerText = lives;
+          }
+
+          asteroid.remove();
+
+          if (lives <= 0) endGame();
+        }
+
+      }, 30);
     });
-
-    dropAsteroid();
-  }
-
-  function dropAsteroid() {
-    let asteroid = document.getElementById("asteroid");
-    asteroid.style.top = "-60px";
-    asteroid.innerText = "☄️";
-
-    setTimeout(() => {
-      asteroid.style.top = "280px";
-    }, 100);
-  }
-
-  function checkAnswer(selected, correctAnswer) {
-    if (gameOver) return;
-
-    total++;
-    let asteroid = document.getElementById("asteroid");
-
-    if (selected === correctAnswer) {
-      score += 10;
-      correct++;
-      asteroid.innerText = "💥";
-      setTimeout(() => {
-        newQuestion();
-      }, 500);
-    } else {
-      lives--;
-      document.getElementById("lives").innerText = lives;
-      document.body.style.background = "darkred";
-      setTimeout(() => {
-        document.body.style.background = "radial-gradient(circle at top, #1b2735, #090a0f)";
-      }, 200);
-    }
-
-    document.getElementById("score").innerText = score;
-
-    if (lives <= 0) endGame();
-  }
-
-  function startTimer() {
-    let countdown = setInterval(() => {
-      if (gameOver) {
-        clearInterval(countdown);
-        return;
-      }
-
-      timeLeft--;
-      document.getElementById("timer").innerText = timeLeft;
-
-      if (timeLeft <= 0) {
-        clearInterval(countdown);
-        endGame();
-      }
-    }, 1000);
   }
 
   async function endGame() {
@@ -205,35 +169,15 @@
 
     let name = document.getElementById("name").value;
     let kelas = document.getElementById("class").value;
-    let accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
 
     if (name && kelas) {
       await supabaseClient.from("astro_scores").insert([
-        { name: name, class: kelas, score: score, accuracy: accuracy, sifir: sifir }
+        { name: name, class: kelas, score: score, accuracy: 100, sifir: sifir }
       ]);
     }
-
-    loadLeaderboard();
   }
 
-  async function loadLeaderboard() {
-    let { data } = await supabaseClient
-      .from("astro_scores")
-      .select("*")
-      .order("score", { ascending: false })
-      .limit(10);
-
-    let board = document.getElementById("board");
-    board.innerHTML = "";
-
-    data.forEach(row => {
-      board.innerHTML += `<div>${row.name} (${row.class}) - ${row.score}</div>`;
-    });
-  }
-
-  newQuestion();
-  startTimer();
-  loadLeaderboard();
+  setInterval(spawnAsteroids, 4000);
 </script>
 
 </body>
