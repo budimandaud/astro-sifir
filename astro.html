@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Astro Sifir</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      background: linear-gradient(to bottom, #0f2027, #203a43, #2c5364);
+      color: white;
+      text-align: center;
+    }
+
+    h1 { margin-top: 20px; }
+
+    .game-box {
+      margin-top: 30px;
+      font-size: 28px;
+    }
+
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .answer { background: #00c6ff; color: black; }
+
+    .leaderboard {
+      margin-top: 40px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>🚀 Astro Sifir</h1>
+
+<div>
+  Nama: <input type="text" id="name">
+  Kelas: <input type="text" id="class">
+</div>
+
+<div class="game-box">
+  <div id="question"></div>
+  <div id="answers"></div>
+</div>
+
+<div>Skor: <span id="score">0</span></div>
+
+<div class="leaderboard">
+  <h2>🏆 Leaderboard</h2>
+  <div id="board"></div>
+</div>
+
+<script>
+  const supabaseUrl = "https://vocabjqcevsauktpujap.supabase.co";
+  const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvY2FianFjZXZzYXVrdHB1amFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzMTUzNDQsImV4cCI6MjA4Njg5MTM0NH0.xUCfX36rki4kFZTRGtlulURFCCEMOL6cqOaKe3DtDP8";
+  const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  let score = 0;
+  let correct = 0;
+  let total = 0;
+  let sifir = 6;
+
+  function newQuestion() {
+    let a = sifir;
+    let b = Math.floor(Math.random() * 10) + 1;
+    let answer = a * b;
+
+    document.getElementById("question").innerText = `${a} x ${b} = ?`;
+
+    let answersDiv = document.getElementById("answers");
+    answersDiv.innerHTML = "";
+
+    let options = [answer];
+
+    while (options.length < 4) {
+      let fake = Math.floor(Math.random() * 100);
+      if (!options.includes(fake)) options.push(fake);
+    }
+
+    options.sort(() => Math.random() - 0.5);
+
+    options.forEach(opt => {
+      let btn = document.createElement("button");
+      btn.innerText = opt;
+      btn.className = "answer";
+      btn.onclick = () => checkAnswer(opt, answer);
+      answersDiv.appendChild(btn);
+    });
+  }
+
+  function checkAnswer(selected, correctAnswer) {
+    total++;
+    if (selected === correctAnswer) {
+      score += 10;
+      correct++;
+    }
+    document.getElementById("score").innerText = score;
+    newQuestion();
+  }
+
+  async function saveScore() {
+    let name = document.getElementById("name").value;
+    let kelas = document.getElementById("class").value;
+
+    let accuracy = Math.round((correct / total) * 100);
+
+    await supabase.from("astro_scores").insert([
+      { name: name, class: kelas, score: score, accuracy: accuracy, sifir: sifir }
+    ]);
+
+    loadLeaderboard();
+  }
+
+  async function loadLeaderboard() {
+    let { data } = await supabase
+      .from("astro_scores")
+      .select("*")
+      .order("score", { ascending: false })
+      .limit(10);
+
+    let board = document.getElementById("board");
+    board.innerHTML = "";
+
+    data.forEach(row => {
+      board.innerHTML += `<div>${row.name} (${row.class}) - ${row.score}</div>`;
+    });
+  }
+
+  setInterval(saveScore, 60000);
+  newQuestion();
+  loadLeaderboard();
+
+</script>
+
+</body>
+</html>
