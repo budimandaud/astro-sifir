@@ -2,7 +2,10 @@
 <html>
 <head>
   <title>Astro Sifir</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Supabase UMD version (IMPORTANT) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
   <style>
     body {
       margin: 0;
@@ -28,7 +31,10 @@
       cursor: pointer;
     }
 
-    .answer { background: #00c6ff; color: black; }
+    .answer {
+      background: #00c6ff;
+      color: black;
+    }
 
     .leaderboard {
       margin-top: 40px;
@@ -58,9 +64,12 @@
 </div>
 
 <script>
+  // 🔑 GUNA KEY CIKGU (yang dah ada)
   const supabaseUrl = "https://vocabjqcevsauktpujap.supabase.co";
   const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvY2FianFjZXZzYXVrdHB1amFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzMTUzNDQsImV4cCI6MjA4Njg5MTM0NH0.xUCfX36rki4kFZTRGtlulURFCCEMOL6cqOaKe3DtDP8";
-  const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  const { createClient } = supabase;
+  const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
   let score = 0;
   let correct = 0;
@@ -109,21 +118,34 @@
     let name = document.getElementById("name").value;
     let kelas = document.getElementById("class").value;
 
-    let accuracy = Math.round((correct / total) * 100);
+    if (!name || !kelas) return;
 
-    await supabase.from("astro_scores").insert([
-      { name: name, class: kelas, score: score, accuracy: accuracy, sifir: sifir }
+    let accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+    await supabaseClient.from("astro_scores").insert([
+      {
+        name: name,
+        class: kelas,
+        score: score,
+        accuracy: accuracy,
+        sifir: sifir
+      }
     ]);
 
     loadLeaderboard();
   }
 
   async function loadLeaderboard() {
-    let { data } = await supabase
+    let { data, error } = await supabaseClient
       .from("astro_scores")
       .select("*")
       .order("score", { ascending: false })
       .limit(10);
+
+    if (error) {
+      console.log(error);
+      return;
+    }
 
     let board = document.getElementById("board");
     board.innerHTML = "";
@@ -134,9 +156,9 @@
   }
 
   setInterval(saveScore, 60000);
+
   newQuestion();
   loadLeaderboard();
-
 </script>
 
 </body>
